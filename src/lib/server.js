@@ -9,6 +9,8 @@ import { Options as ChromeOptions } from 'selenium-webdriver/chrome.js';
 import { Options as FirefoxOptions } from 'selenium-webdriver/firefox.js';
 import { Options as EdgeOptions } from 'selenium-webdriver/edge.js';
 
+// Remote Selenium Grid URL (optional)
+const SELENIUM_GRID_URL = process.env.SELENIUM_GRID_URL;
 
 // Create an MCP server
 const server = new McpServer({
@@ -66,12 +68,25 @@ server.tool(
     async ({ browser, options = {} }) => {
         try {
             let builder = new Builder();
+            
+            // If remote grid URL is configured, use it
+            if (SELENIUM_GRID_URL) {
+                builder = builder.usingServer(SELENIUM_GRID_URL);
+            }
+            
             let driver;
             switch (browser) {
                 case 'chrome': {
                     const chromeOptions = new ChromeOptions();
                     if (options.headless) {
                         chromeOptions.addArguments('--headless=new');
+                    }
+                    // Add recommended args for remote/containerized execution
+                    if (SELENIUM_GRID_URL) {
+                        chromeOptions.addArguments('--no-sandbox');
+                        chromeOptions.addArguments('--disable-dev-shm-usage');
+                        chromeOptions.addArguments('--disable-gpu');
+                        chromeOptions.addArguments('--window-size=1920,1080');
                     }
                     if (options.arguments) {
                         options.arguments.forEach(arg => chromeOptions.addArguments(arg));
@@ -86,6 +101,12 @@ server.tool(
                     const edgeOptions = new EdgeOptions();
                     if (options.headless) {
                         edgeOptions.addArguments('--headless=new');
+                    }
+                    if (SELENIUM_GRID_URL) {
+                        edgeOptions.addArguments('--no-sandbox');
+                        edgeOptions.addArguments('--disable-dev-shm-usage');
+                        edgeOptions.addArguments('--disable-gpu');
+                        edgeOptions.addArguments('--window-size=1920,1080');
                     }
                     if (options.arguments) {
                         options.arguments.forEach(arg => edgeOptions.addArguments(arg));
@@ -118,8 +139,11 @@ server.tool(
             state.drivers.set(sessionId, driver);
             state.currentSession = sessionId;
 
+            const connectionInfo = SELENIUM_GRID_URL 
+                ? ` (connected to grid: ${SELENIUM_GRID_URL})`
+                : ' (local)';
             return {
-                content: [{ type: 'text', text: `Browser started with session_id: ${sessionId}` }]
+                content: [{ type: 'text', text: `Browser started with session_id: ${sessionId}${connectionInfo}` }]
             };
         } catch (e) {
             return {
@@ -452,7 +476,7 @@ server.resource(
         contents: [{
             uri: uri.href,
             text: state.currentSession
-                ? `Active browser session: ${state.currentSession}`
+                ? `Active browser session: ${state.currentSession}${SELENIUM_GRID_URL ? ` (grid: ${SELENIUM_GRID_URL})` : ' (local)'}`
                 : "No active browser session"
         }]
     })
