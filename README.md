@@ -4,6 +4,8 @@
 
 A Model Context Protocol (MCP) server implementation for Selenium WebDriver, enabling browser automation through standardized MCP clients.
 
+> **Fork Note**: This fork adds support for connecting to remote Selenium Grid servers via the `SELENIUM_GRID_URL` environment variable.
+
 ## Video Demo (Click to Watch)
 
 [![Watch the video](https://img.youtube.com/vi/mRV0N8hcgYA/sddefault.jpg)](https://youtu.be/mRV0N8hcgYA)
@@ -20,6 +22,7 @@ A Model Context Protocol (MCP) server implementation for Selenium WebDriver, ena
 - Take screenshots
 - Upload files
 - Support for headless mode
+- **Connect to remote Selenium Grid** (fork feature)
 
 ## Supported Browsers
 
@@ -54,6 +57,43 @@ goose://extension?cmd=npx&arg=-y&arg=%40angiejones%2Fmcp-selenium&id=selenium-mc
   }
 }
 ```
+
+## Remote Selenium Grid Support (Fork Feature)
+
+This fork adds support for connecting to a remote Selenium Grid instead of launching a local browser. This is useful for:
+- Running browsers in Kubernetes/Docker environments
+- Sharing browser resources across multiple clients
+- Running browsers on machines without display capabilities
+
+### Configuration
+
+Set the `SELENIUM_GRID_URL` environment variable to your Selenium Grid hub URL:
+
+```json
+{
+  "mcpServers": {
+    "selenium": {
+      "command": "npx",
+      "args": ["-y", "github:amorabito/mcp-selenium"],
+      "env": {
+        "SELENIUM_GRID_URL": "http://selenium-hub:4444/wd/hub"
+      }
+    }
+  }
+}
+```
+
+### Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `SELENIUM_GRID_URL` | Full URL to your Selenium Grid hub (e.g., `http://selenium-hub:4444/wd/hub`) | No (falls back to local browser) |
+
+When `SELENIUM_GRID_URL` is set, the following browser arguments are automatically added for Chrome/Edge:
+- `--no-sandbox`
+- `--disable-dev-shm-usage`
+- `--disable-gpu`
+- `--window-size=1920,1080`
 
 ---
 
